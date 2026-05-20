@@ -461,3 +461,58 @@ xqc_test_stream()
         xqc_free(conn->alpn);
     }
 }
+
+/*
+ * RFC 9114 Section 6.2.1: If a peer's control stream has already been opened,
+ * receiving a second one MUST be treated as a connection error of type
+ * H3_STREAM_CREATION_ERROR.
+ *
+ * This test verifies xqc_h3_conn_on_uni_stream_created():
+ *   1) first control stream is accepted (returns XQC_OK, conn_err == 0)
+ *   2) second control stream is rejected with H3_STREAM_CREATION_ERROR
+ *
+ * NOTE: We intentionally avoid xqc_h3_stream_create / xqc_destroy_stream
+ *       to prevent the heap corruption observed in earlier draft tests.
+ *       Only xqc_h3_conn_create / xqc_h3_conn_destroy are exercised, the
+ *       same pattern proven safe by xqc_test_stream above.
+ */
+void
+xqc_test_h3_second_control_stream_rejected()
+{
+    xqc_connection_t *conn = test_engine_connect();
+    CU_ASSERT(conn != NULL);
+    if (conn == NULL) {
+        return;
+    }
+
+    /* set alpn to H3 (same pattern as xqc_test_stream) */
+    if (conn->alpn) {
+        xqc_free(conn->alpn);
+    }
+    conn->alpn_len = strlen(XQC_ALPN_H3);
+    conn->alpn = xqc_calloc(1, conn->alpn_len + 1);
+    xqc_memcpy(conn->alpn, XQC_ALPN_H3, conn->alpn_len);
+
+    xqc_h3_conn_t *h3c = xqc_h3_conn_create(conn, NULL);
+    CU_ASSERT(h3c != NULL);
+    if (h3c == NULL) {
+        goto cleanup_conn;
+    }
+
+    /* 1st control stream: should be accepted */
+    xqc_int_t ret = xqc_h3_conn_on_uni_stream_created(h3c, XQC_H3_STREAM_TYPE_CONTROL);
+    CU_ASSERT(ret == XQC_OK);
+    CU_ASSERT(h3c->conn->conn_err == 0);
+
+    /* 2nd control stream: MUST be rejected with H3_STREAM_CREATION_ERROR (RFC 9114 6.2.1) */
+    ret = xqc_h3_conn_on_uni_stream_created(h3c, XQC_H3_STREAM_TYPE_CONTROL);
+    CU_ASSERT(ret == -XQC_H3_INVALID_STREAM);
+    CU_ASSERT(h3c->conn->conn_err == H3_STREAM_CREATION_ERROR);
+
+    xqc_h3_conn_destroy(h3c);
+
+cleanup_conn:
+    if (conn->alpn) {
+        xqc_free(conn->alpn);
+    }
+}
