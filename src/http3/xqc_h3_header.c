@@ -453,3 +453,67 @@ xqc_h3_hdr_type(unsigned char *name, size_t nlen)
 
     return XQC_HDR_UNKNOWN;
 }
+
+
+/**
+ * RFC 9114 Section 4.2:
+ * HTTP/3 does not use the Connection header field to indicate
+ * connection-specific header fields; in this protocol, connection-
+ * specific metadata is conveyed by other means.  An endpoint MUST NOT
+ * generate an HTTP/3 field section containing connection-specific
+ * header fields; any message containing connection-specific header
+ * fields MUST be treated as malformed.
+ *
+ * Forbidden headers: connection, keep-alive, proxy-connection,
+ * transfer-encoding, upgrade.
+ * Exception: "te" is allowed with value "trailers" only.
+ */
+xqc_bool_t
+xqc_h3_hdr_is_forbidden(const unsigned char *name, size_t nlen,
+                         const unsigned char *value, size_t vlen)
+{
+    switch (nlen) {
+    case 2:
+        /* "te" - allowed only if value is "trailers" */
+        if (memcmp(name, "te", 2) == 0) {
+            if (vlen == 8 && memcmp(value, "trailers", 8) == 0) {
+                return XQC_FALSE;
+            }
+            return XQC_TRUE;
+        }
+        break;
+
+    case 7:
+        /* "upgrade" */
+        if (memcmp(name, "upgrade", 7) == 0) {
+            return XQC_TRUE;
+        }
+        break;
+
+    case 10:
+        /* "connection" or "keep-alive" */
+        if (memcmp(name, "connection", 10) == 0) {
+            return XQC_TRUE;
+        }
+        if (memcmp(name, "keep-alive", 10) == 0) {
+            return XQC_TRUE;
+        }
+        break;
+
+    case 16:
+        /* "proxy-connection" */
+        if (memcmp(name, "proxy-connection", 16) == 0) {
+            return XQC_TRUE;
+        }
+        break;
+
+    case 17:
+        /* "transfer-encoding" */
+        if (memcmp(name, "transfer-encoding", 17) == 0) {
+            return XQC_TRUE;
+        }
+        break;
+    }
+
+    return XQC_FALSE;
+}

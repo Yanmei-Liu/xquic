@@ -133,4 +133,20 @@ typedef enum {
 xqc_hdr_type_t xqc_h3_hdr_type(unsigned char *name, size_t nlen);
 
 
+/**
+ * @brief check if a header is forbidden in HTTP/3 per RFC 9114 Section 4.2.
+ * Forbidden headers: connection, keep-alive, proxy-connection,
+ * transfer-encoding, upgrade.  The "te" header is allowed only when its
+ * value is exactly "trailers".
+ *
+ * @param name  header name (must be lowercase)
+ * @param nlen  header name length
+ * @param value header value
+ * @param vlen  header value length
+ * @return XQC_TRUE if the header is forbidden, XQC_FALSE otherwise
+ */
+xqc_bool_t xqc_h3_hdr_is_forbidden(const unsigned char *name, size_t nlen,
+                                    const unsigned char *value, size_t vlen);
+
+
 #endif /* XQUIC_XQC_H3_HEADER_H */

@@ -11,5 +11,8 @@ void xqc_test_ins();
 void xqc_test_rep();
 void xqc_test_h3_critical_stream_close();
 void xqc_test_h3_second_control_stream_rejected();
+void xqc_test_h3_message_error_enum();
+void xqc_test_h3_forbidden_headers_rejected();
+void xqc_test_h3_allowed_headers_pass();
 
 #endif //XQUIC_XQC_H3_TEST_H
