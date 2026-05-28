@@ -2588,6 +2588,42 @@ xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
         header_size++;
     }
 
+    if (g_test_case == 55) {
+        header[header_size].name.iov_base = "transfer-encoding";
+        header[header_size].name.iov_len = 17;
+        header[header_size].value.iov_base = "chunked";
+        header[header_size].value.iov_len = 7;
+        header[header_size].flags = 0;
+        header_size++;
+    }
+
+    if (g_test_case == 56) {
+        header[header_size].name.iov_base = "connection";
+        header[header_size].name.iov_len = 10;
+        header[header_size].value.iov_base = "keep-alive";
+        header[header_size].value.iov_len = 10;
+        header[header_size].flags = 0;
+        header_size++;
+    }
+
+    if (g_test_case == 57) {
+        header[header_size].name.iov_base = "te";
+        header[header_size].name.iov_len = 2;
+        header[header_size].value.iov_base = "chunked";
+        header[header_size].value.iov_len = 7;
+        header[header_size].flags = 0;
+        header_size++;
+    }
+
+    if (g_test_case == 58) {
+        header[header_size].name.iov_base = "te";
+        header[header_size].name.iov_len = 2;
+        header[header_size].value.iov_base = "trailers";
+        header[header_size].value.iov_len = 8;
+        header[header_size].flags = 0;
+        header_size++;
+    }
+
     if (g_header_cnt > 0) {
         for (int i = 0; i < g_header_cnt; i++) {
             char *pos = strchr(g_headers[i], ':');
@@ -2637,6 +2673,11 @@ xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
 
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %zd\n", ret);
+            if (g_test_case >= 55 && g_test_case <= 57
+                && ret == -XQC_H3_INVALID_HEADER)
+            {
+                printf(">>>>>>>> pass:1\n");
+            }
             return ret;
 
         } else {

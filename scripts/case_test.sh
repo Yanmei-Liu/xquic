@@ -5002,4 +5002,62 @@ else
     case_print_result "ack_timestamp_frame_case_6" "fail"
 fi
 
+
+# ---- Forbidden header tests (RFC 9114 Section 4.2) ----
+killall test_server 2> /dev/null
+${SERVER_BIN} -l d -e > /dev/null &
+sleep 1
+
+clear_log
+echo -e "forbidden header: transfer-encoding ...\c"
+${CLIENT_BIN} -l d -t 1 -x 55 >> clog
+result=`grep ">>>>>>>> pass" clog`
+errlog=`grep "forbidden header in h3 send" clog`
+if [ -n "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "forbidden_header_transfer_encoding" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "forbidden_header_transfer_encoding" "fail"
+fi
+
+clear_log
+echo -e "forbidden header: connection ...\c"
+${CLIENT_BIN} -l d -t 1 -x 56 >> clog
+result=`grep ">>>>>>>> pass" clog`
+errlog=`grep "forbidden header in h3 send" clog`
+if [ -n "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "forbidden_header_connection" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "forbidden_header_connection" "fail"
+fi
+
+clear_log
+echo -e "forbidden header: te with non-trailers value ...\c"
+${CLIENT_BIN} -l d -t 1 -x 57 >> clog
+result=`grep ">>>>>>>> pass" clog`
+errlog=`grep "forbidden header in h3 send" clog`
+if [ -n "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "forbidden_header_te_invalid" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "forbidden_header_te_invalid" "fail"
+fi
+
+clear_log
+echo -e "te trailers header allowed ...\c"
+${CLIENT_BIN} -s 1024 -l d -t 1 -E -x 58 >> clog
+result=`grep ">>>>>>>> pass" clog`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "te_trailers_allowed" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "te_trailers_allowed" "fail"
+fi
+
 cd -
