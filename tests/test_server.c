@@ -2494,6 +2494,8 @@ int main(int argc, char *argv[]) {
         // .datagram_force_retrans_on = 1,
         .marking_reinjection = 1,
         .close_dgram_redundancy = XQC_RED_NOT_USE,
+        /* simulate_ecn: default false, enable only for experiment/testing */
+        .simulate_ecn = 0,
     };
 
     if (g_pmtud_on) {

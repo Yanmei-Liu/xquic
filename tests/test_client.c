@@ -4620,7 +4620,9 @@ int main(int argc, char *argv[]) {
         .marking_reinjection = 1,
         .mp_ping_on = g_mp_ping_on,
         .recv_rate_bytes_per_sec = rate_limit,
-        .close_dgram_redundancy = XQC_RED_NOT_USE
+        .close_dgram_redundancy = XQC_RED_NOT_USE,
+        /* simulate_ecn: default false, enable only for experiment/testing */
+        .simulate_ecn = 0,
     };
 
     strncpy(conn_settings.conn_option_str, conn_options, XQC_CO_STR_MAX_LEN - 1);

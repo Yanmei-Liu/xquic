@@ -1535,8 +1535,9 @@ typedef struct xqc_conn_settings_s {
     uint64_t                    max_streams_uni;
 
     /*
-     * testing only: when non-zero, xqc_gen_ack_frame writes ACK_ECN
-     * (type 0x03) with dummy ECN counts instead of plain ACK (0x02).
+     * simulate_ecn: default 0 (false), enable only for experiment/testing.
+     * when non-zero, xqc_gen_ack_frame writes ACK_ECN (type 0x03) with
+     * dummy ECN counts instead of plain ACK (0x02).
      */
     uint8_t                     simulate_ecn;
 } xqc_conn_settings_t;
