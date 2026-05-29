@@ -1056,7 +1056,19 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 /* PUSH related is not implemented yet */
                 break;
 
-            /* RFC 9114 §7.2.4/§7.2.3/§7.2.6/§7.2.7: control-only frames on request stream */
+            /*
+             * RFC 9114 §7.2.4/§7.2.3/§7.2.6/§7.2.7: control-only frames
+             * on request stream.
+             *
+             * NOTE: RFC 9114 §4.2 also forbids connection-specific headers
+             * (Connection, Upgrade, Keep-Alive, Proxy-Connection,
+             * Transfer-Encoding) on HTTP/3.  We intentionally do NOT reject
+             * them here because the current WebSocket-over-HTTP/3 scheme
+             * tunnels WS upgrade via the Upgrade header on request streams.
+             * This exception can be removed once the transport migrates to
+             * WebTransport (RFC 9220), which uses CONNECT and extended
+             * CONNECT instead of Upgrade.
+             */
             case XQC_H3_FRM_SETTINGS:
             case XQC_H3_FRM_CANCEL_PUSH:
             case XQC_H3_FRM_GOAWAY:
