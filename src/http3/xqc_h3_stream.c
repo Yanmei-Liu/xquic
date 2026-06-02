@@ -1578,7 +1578,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_
                 if (xqc_h3_stream_reset_with_error(h3s, H3_MESSAGE_ERROR) != XQC_OK) {
                     XQC_H3_CONN_ERR(h3c, H3_MESSAGE_ERROR, errcode);
                 }
-                return errcode;
+                return XQC_BREAK;
             }
 
             if (processed == -XQC_H3_INVALID_HEADER) {
@@ -1749,9 +1749,10 @@ xqc_h3_stream_process_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, xqc_bool_
         ret = xqc_h3_stream_process_in(h3s, buff, read, *fin);
         if (ret != XQC_OK) {
             xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_in error|%d|", ret);
-            if (h3s->stream_err == 0) {
-                XQC_H3_CONN_ERR(h3s->h3c, H3_INTERNAL_ERROR, ret);
+            if (ret == XQC_BREAK) {
+                return XQC_BREAK;
             }
+            XQC_H3_CONN_ERR(h3s->h3c, H3_INTERNAL_ERROR, ret);
             return ret;
         }
 
@@ -1951,7 +1952,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
         ret = xqc_h3_stream_process_data(stream, h3s, &fin);
 
         h3s->flags &= ~XQC_HTTP3_STREAM_IN_READING;
-        if (ret == -XQC_H3_STREAM_RECV_ERROR) {
+        if (ret == -XQC_H3_STREAM_RECV_ERROR || ret == XQC_BREAK) {
             return XQC_OK;
         } else if (ret != XQC_OK) {
             xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_data error|%d|", ret);
