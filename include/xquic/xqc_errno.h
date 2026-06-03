@@ -90,6 +90,7 @@ typedef enum {
 
 #define XQC_OK      0
 #define XQC_ERROR   -1
+#define XQC_BREAK   -2
 
 
 /**

@@ -34,4 +34,9 @@ void xqc_test_h3_allowed_headers_pass();
 /* issue #748: RFC 9114 §4.2 uppercase field name rejection */
 void xqc_test_h3_field_name_uppercase_rejection();
 
+/* issue #748: blocked-path and reset-failure coverage */
+void xqc_test_h3_blocked_stream_invalid_header();
+void xqc_test_h3_blocked_stream_malformed_header();
+void xqc_test_h3_reset_failure_falls_back_to_conn_error();
+
 #endif //XQUIC_XQC_H3_TEST_H

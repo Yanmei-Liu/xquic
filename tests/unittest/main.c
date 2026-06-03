@@ -140,6 +140,10 @@ main()
         || !CU_add_test(pSuite, "xqc_test_h3_allowed_headers_pass", xqc_test_h3_allowed_headers_pass)
         /* issue #748: RFC 9114 §4.2 uppercase field name rejection */
         || !CU_add_test(pSuite, "xqc_test_h3_field_name_uppercase_rejection", xqc_test_h3_field_name_uppercase_rejection)
+        /* issue #748: blocked-path and reset-failure coverage */
+        || !CU_add_test(pSuite, "xqc_test_h3_blocked_stream_invalid_header", xqc_test_h3_blocked_stream_invalid_header)
+        || !CU_add_test(pSuite, "xqc_test_h3_blocked_stream_malformed_header", xqc_test_h3_blocked_stream_malformed_header)
+        || !CU_add_test(pSuite, "xqc_test_h3_reset_failure_falls_back_to_conn_error", xqc_test_h3_reset_failure_falls_back_to_conn_error)
         || !CU_add_test(pSuite, "xqc_test_stable", xqc_test_stable)
         || !CU_add_test(pSuite, "xqc_test_dtable", xqc_test_dtable)
         || !CU_add_test(pSuite, "test_2d_hash_table", test_2d_hash_table)
