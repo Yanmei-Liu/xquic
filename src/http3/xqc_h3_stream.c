@@ -1575,10 +1575,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_
              * H3_MESSAGE_ERROR so only the offending stream is torn down.
              */
             if (processed == -XQC_H3_EMALFORMED_HEADER) {
-                if (xqc_h3_stream_reset_with_error(h3s, H3_MESSAGE_ERROR) != XQC_OK) {
-                    XQC_H3_CONN_ERR(h3c, H3_MESSAGE_ERROR, errcode);
-                }
-                return XQC_BREAK;
+                goto h3_message_error;
             }
 
             if (processed == -XQC_H3_INVALID_HEADER) {
@@ -1586,7 +1583,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_
                  * MUST be treated as H3_MESSAGE_ERROR, not as a generic
                  * protocol error. This path covers QPACK decode failures
                  * surfaced as -XQC_H3_INVALID_HEADER. */
-                XQC_H3_CONN_ERR(h3c, H3_MESSAGE_ERROR, errcode);
+                goto h3_message_error;
 
             } else {
                 XQC_H3_CONN_ERR(h3c, H3_FRAME_ERROR, errcode);
@@ -1624,6 +1621,11 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_
     }
 
     return XQC_OK;
+h3_message_error:
+    if (xqc_h3_stream_reset_with_error(h3s, H3_MESSAGE_ERROR) != XQC_OK) {
+        XQC_H3_CONN_ERR(h3c, H3_MESSAGE_ERROR, processed);
+    }
+    return XQC_BREAK;
 }
 
 
@@ -1808,9 +1810,10 @@ xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s)
         ssize_t processed = xqc_h3_stream_process_request(h3s, buf->data + buf->consumed_len,
                                                           buf->data_len - buf->consumed_len, buf->fin_flag);
         if (processed < 0) {
-            if (processed == -XQC_H3_EMALFORMED_HEADER) {
+            if (processed == -XQC_H3_EMALFORMED_HEADER
+                || processed == -XQC_H3_INVALID_HEADER) {
                 if (xqc_h3_stream_reset_with_error(h3s, H3_MESSAGE_ERROR) != XQC_OK) {
-                    XQC_H3_CONN_ERR(h3s->h3c, H3_MESSAGE_ERROR, -XQC_H3_EMALFORMED_HEADER);
+                    XQC_H3_CONN_ERR(h3s->h3c, H3_MESSAGE_ERROR, processed);
                 }
                 h3s->ref_cnt--;
                 return XQC_OK;
