@@ -1109,8 +1109,9 @@ xqc_test_h3_blocked_stream_invalid_header()
 
     xqc_var_buf_t *buf = xqc_var_buf_create(sizeof(xqc_h3_msgerr_valid_headers));
     CU_ASSERT_FATAL(buf != NULL);
-    xqc_var_buf_save_data(buf, xqc_h3_msgerr_valid_headers,
-                          sizeof(xqc_h3_msgerr_valid_headers));
+    xqc_int_t sv = xqc_var_buf_save_data(buf, xqc_h3_msgerr_valid_headers,
+                                         sizeof(xqc_h3_msgerr_valid_headers));
+    CU_ASSERT_FATAL(sv == XQC_OK);
     buf->fin_flag = 1;
 
     xqc_int_t rc = xqc_list_buf_to_tail(&h3s->blocked_buf, buf);
@@ -1149,7 +1150,8 @@ xqc_test_h3_blocked_stream_malformed_header()
 
     xqc_var_buf_t *buf = xqc_var_buf_create(sizeof(uppercase_hdr));
     CU_ASSERT_FATAL(buf != NULL);
-    xqc_var_buf_save_data(buf, uppercase_hdr, sizeof(uppercase_hdr));
+    xqc_int_t sv = xqc_var_buf_save_data(buf, uppercase_hdr, sizeof(uppercase_hdr));
+    CU_ASSERT_FATAL(sv == XQC_OK);
     buf->fin_flag = 1;
 
     xqc_int_t rc = xqc_list_buf_to_tail(&h3s->blocked_buf, buf);

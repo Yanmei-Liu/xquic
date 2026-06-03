@@ -1570,24 +1570,16 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_
             }
 
             /*
-             * RFC 9114 4.1.2: malformed request/response is a stream error,
-             * not a connection error.  send RESET_STREAM + STOP_SENDING with
+             * RFC 9114 §4.1.2: malformed request/response is a stream error,
+             * not a connection error.  Send RESET_STREAM + STOP_SENDING with
              * H3_MESSAGE_ERROR so only the offending stream is torn down.
              */
-            if (processed == -XQC_H3_EMALFORMED_HEADER) {
+            if (processed == -XQC_H3_EMALFORMED_HEADER
+                || processed == -XQC_H3_INVALID_HEADER) {
                 goto h3_message_error;
             }
 
-            if (processed == -XQC_H3_INVALID_HEADER) {
-                /* RFC 9114 §4.1.2: malformed request/response headers
-                 * MUST be treated as H3_MESSAGE_ERROR, not as a generic
-                 * protocol error. This path covers QPACK decode failures
-                 * surfaced as -XQC_H3_INVALID_HEADER. */
-                goto h3_message_error;
-
-            } else {
-                XQC_H3_CONN_ERR(h3c, H3_FRAME_ERROR, errcode);
-            }
+            XQC_H3_CONN_ERR(h3c, H3_FRAME_ERROR, errcode);
 
             // TODO: define an errorcode for bytstream?
             return errcode;
@@ -1752,6 +1744,9 @@ xqc_h3_stream_process_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, xqc_bool_
         if (ret != XQC_OK) {
             xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_in error|%d|", ret);
             if (ret == XQC_BREAK) {
+                xqc_log(h3c->log, XQC_LOG_WARN,
+                        "|stream reset with h3_err|stream_err:0x%xi|stream_id:%ui|",
+                        (int64_t)h3s->stream_err, h3s->stream_id);
                 return XQC_BREAK;
             }
             XQC_H3_CONN_ERR(h3s->h3c, H3_INTERNAL_ERROR, ret);
