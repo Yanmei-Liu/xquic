@@ -12,6 +12,7 @@
 #include "src/http3/xqc_h3_header.h"
 #include "src/http3/qpack/xqc_qpack.h"
 #include "src/transport/xqc_stream.h"
+#include "src/transport/xqc_send_queue.h"
 #include "src/http3/qpack/stable/xqc_stable.h"
 
 #include "xqc_common_test.h"
@@ -1091,6 +1092,114 @@ xqc_test_h3_headers_capacity_uses_internal_error()
     CU_ASSERT(conn->conn_err == H3_INTERNAL_ERROR);
     CU_ASSERT(conn->conn_err == 0x102);
     CU_ASSERT((conn->conn_flag & XQC_CONN_FLAG_ERROR) != 0);
+
+    xqc_h3_msgerr_teardown(h3s, h3c, conn);
+}
+
+
+void
+xqc_test_h3_blocked_stream_invalid_header()
+{
+    xqc_connection_t *conn = NULL;
+    xqc_h3_conn_t *h3c = NULL;
+    xqc_h3_stream_t *h3s = xqc_h3_msgerr_setup(&conn, &h3c);
+    CU_ASSERT_FATAL(h3s != NULL);
+
+    h3c->local_h3_conn_settings.max_field_section_size = 1;
+
+    xqc_var_buf_t *buf = xqc_var_buf_create(sizeof(xqc_h3_msgerr_valid_headers));
+    CU_ASSERT_FATAL(buf != NULL);
+    xqc_var_buf_save_data(buf, xqc_h3_msgerr_valid_headers,
+                          sizeof(xqc_h3_msgerr_valid_headers));
+    buf->fin_flag = 1;
+
+    xqc_int_t rc = xqc_list_buf_to_tail(&h3s->blocked_buf, buf);
+    CU_ASSERT_FATAL(rc == XQC_OK);
+
+    CU_ASSERT(conn->conn_err == 0);
+
+    xqc_int_t ret = xqc_h3_stream_process_blocked_stream(h3s);
+
+    CU_ASSERT(ret == XQC_OK);
+    CU_ASSERT(h3s->stream_err == H3_MESSAGE_ERROR);
+    CU_ASSERT(conn->conn_err == 0);
+    CU_ASSERT((conn->conn_flag & XQC_CONN_FLAG_ERROR) == 0);
+
+    xqc_h3_msgerr_teardown(h3s, h3c, conn);
+}
+
+
+void
+xqc_test_h3_blocked_stream_malformed_header()
+{
+    xqc_connection_t *conn = NULL;
+    xqc_h3_conn_t *h3c = NULL;
+    xqc_h3_stream_t *h3s = xqc_h3_msgerr_setup(&conn, &h3c);
+    CU_ASSERT_FATAL(h3s != NULL);
+
+    /* HEADERS frame with QPACK literal: uppercase name "X", empty value.
+     * 0x01, 0x05  = HEADERS frame type + payload length 5
+     * 0x00, 0x00  = QPACK prefix: RIC=0, DeltaBase=0
+     * 0x21        = Literal without name ref (0b001NHLLL), N=0, H=0, len=1
+     * 0x58        = 'X' (uppercase triggers EMALFORMED_HEADER)
+     * 0x00        = value length 0 */
+    static const unsigned char uppercase_hdr[] = {
+        0x01, 0x05, 0x00, 0x00, 0x21, 0x58, 0x00
+    };
+
+    xqc_var_buf_t *buf = xqc_var_buf_create(sizeof(uppercase_hdr));
+    CU_ASSERT_FATAL(buf != NULL);
+    xqc_var_buf_save_data(buf, uppercase_hdr, sizeof(uppercase_hdr));
+    buf->fin_flag = 1;
+
+    xqc_int_t rc = xqc_list_buf_to_tail(&h3s->blocked_buf, buf);
+    CU_ASSERT_FATAL(rc == XQC_OK);
+
+    CU_ASSERT(conn->conn_err == 0);
+
+    xqc_int_t ret = xqc_h3_stream_process_blocked_stream(h3s);
+
+    CU_ASSERT(ret == XQC_OK);
+    CU_ASSERT(h3s->stream_err == H3_MESSAGE_ERROR);
+    CU_ASSERT(conn->conn_err == 0);
+    CU_ASSERT((conn->conn_flag & XQC_CONN_FLAG_ERROR) == 0);
+
+    xqc_h3_msgerr_teardown(h3s, h3c, conn);
+}
+
+
+void
+xqc_test_h3_reset_failure_falls_back_to_conn_error()
+{
+    xqc_connection_t *conn = NULL;
+    xqc_h3_conn_t *h3c = NULL;
+    xqc_h3_stream_t *h3s = xqc_h3_msgerr_setup(&conn, &h3c);
+    CU_ASSERT_FATAL(h3s != NULL);
+
+    h3c->local_h3_conn_settings.max_field_section_size = 1;
+
+    /* Sabotage packet allocation so reset_with_error fails:
+     * drain the free-packet pool and shrink the buffer so
+     * xqc_gen_short_packet_header returns -XQC_ENOBUF. */
+    xqc_send_queue_destroy_packets_list(
+            &conn->conn_send_queue->sndq_free_packets);
+    xqc_init_list_head(&conn->conn_send_queue->sndq_free_packets);
+    size_t saved_pkt_out_size = conn->pkt_out_size;
+    conn->pkt_out_size = 1;
+
+    CU_ASSERT(conn->conn_err == 0);
+
+    unsigned char data[sizeof(xqc_h3_msgerr_valid_headers)];
+    xqc_memcpy(data, xqc_h3_msgerr_valid_headers, sizeof(data));
+
+    xqc_int_t ret = xqc_h3_stream_process_in(h3s, data, sizeof(data),
+            XQC_TRUE);
+
+    CU_ASSERT(ret == XQC_BREAK);
+    CU_ASSERT(conn->conn_err == H3_MESSAGE_ERROR);
+    CU_ASSERT((conn->conn_flag & XQC_CONN_FLAG_ERROR) != 0);
+
+    conn->pkt_out_size = saved_pkt_out_size;
 
     xqc_h3_msgerr_teardown(h3s, h3c, conn);
 }
