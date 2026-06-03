@@ -1036,8 +1036,8 @@ xqc_test_h3_malformed_headers_uses_message_error()
      * the decoded :authority header section (10 bytes) trips the
      * "header section too large" path in xqc_h3_request_on_recv_header
      * (xqc_h3_request.c:821). That returns -XQC_H3_INVALID_HEADER up
-     * to process_in, which must map it to H3_MESSAGE_ERROR per
-     * RFC 9114 §4.1.2. Pre-fix this raised H3_GENERAL_PROTOCOL_ERROR.
+     * to process_in, which must reset just the offending stream with
+     * H3_MESSAGE_ERROR per RFC 9114 §4.1.2, NOT close the connection.
      */
     h3c->local_h3_conn_settings.max_field_section_size = 1;
 
@@ -1049,11 +1049,12 @@ xqc_test_h3_malformed_headers_uses_message_error()
     xqc_int_t ret = xqc_h3_stream_process_in(h3s, buf, sizeof(buf),
             XQC_TRUE);
 
-    /* process_in collapses sub-errors to -XQC_H3_EPROC_REQUEST */
-    CU_ASSERT(ret == -XQC_H3_EPROC_REQUEST);
-    CU_ASSERT(conn->conn_err == H3_MESSAGE_ERROR);
-    CU_ASSERT(conn->conn_err == 0x10E);
-    CU_ASSERT((conn->conn_flag & XQC_CONN_FLAG_ERROR) != 0);
+    /* process_in resets the stream and returns XQC_BREAK */
+    CU_ASSERT(ret == XQC_BREAK);
+    /* stream-level error only; connection must remain clean */
+    CU_ASSERT(h3s->stream_err == H3_MESSAGE_ERROR);
+    CU_ASSERT(conn->conn_err == 0);
+    CU_ASSERT((conn->conn_flag & XQC_CONN_FLAG_ERROR) == 0);
 
     xqc_h3_msgerr_teardown(h3s, h3c, conn);
 }
@@ -1072,11 +1073,9 @@ xqc_test_h3_headers_capacity_uses_internal_error()
      * jumping current_header to the cap. A third HEADERS frame then
      * makes xqc_h3_request_get_writing_headers return NULL inside
      * xqc_h3_stream_process_request (xqc_h3_stream.c:920), which is
-     * an implementation-side capacity exhaustion. Post-fix this must
-     * be H3_INTERNAL_ERROR (0x102), not the previous
-     * H3_GENERAL_PROTOCOL_ERROR (0x101). XQC_H3_CONN_ERR is
-     * first-write-wins so the outer process_in mapping at line 1521
-     * does not overwrite it.
+     * an implementation-side capacity exhaustion. The CONN_ERR inside
+     * process_request fires first with H3_INTERNAL_ERROR (0x102);
+     * h3_message_error's fallback CONN_ERR is a no-op (first-write-wins).
      */
     h3s->h3r->current_header = XQC_H3_REQUEST_MAX_HEADERS_CNT;
 
@@ -1088,7 +1087,7 @@ xqc_test_h3_headers_capacity_uses_internal_error()
     xqc_int_t ret = xqc_h3_stream_process_in(h3s, buf, sizeof(buf),
             XQC_TRUE);
 
-    CU_ASSERT(ret == -XQC_H3_EPROC_REQUEST);
+    CU_ASSERT(ret == XQC_BREAK);
     CU_ASSERT(conn->conn_err == H3_INTERNAL_ERROR);
     CU_ASSERT(conn->conn_err == 0x102);
     CU_ASSERT((conn->conn_flag & XQC_CONN_FLAG_ERROR) != 0);
