@@ -30,7 +30,7 @@ When starting any task, use this mapping to determine which documentation to rea
 | `mini/*` | `docs/API.md` | (none unless API usage pattern changes) | `/validate --build` |
 | `CMakeLists.txt` | `docs_ai/build/build_guide.md` | `docs_ai/build/build_guide.md` | `/validate` (full) |
 | `cmake/*` | `docs_ai/build/build_guide.md` | `docs_ai/build/build_guide.md` | `/validate --build` |
-| `scripts/*` | `.claude/skills/validate/SKILL.md` | (none unless validation policy changes) | Run affected script |
+| `scripts/*` | `harness/skills/validate/SKILL.md` | (none unless validation policy changes) | Run affected script |
 
 ## Lookup Procedure (Execute at Stage 1: Requirement Analysis)
 
@@ -49,7 +49,7 @@ When a change spans multiple modules, read ALL relevant docs. Specifically:
 - **Public API change** -> Always read `docs_ai/architecture/overview.md` + `docs/API.md`
 - **New module/file** -> Update `docs_ai/architecture/module_dependency.md` + `docs_ai/codebase_index.md`
 - **Build system change** -> Read and update `docs_ai/build/build_guide.md`
-- **New test pattern** -> See `tests/CLAUDE.md` and `.claude/skills/validate/SKILL.md`
+- **New test pattern** -> See `tests/CLAUDE.md` and `harness/skills/validate/SKILL.md`
 - **New congestion control algorithm** -> Update `docs_ai/architecture/overview.md` (CC section) + `docs_ai/build/build_guide.md` (feature flags)
 
 ## Documentation Structure
@@ -67,7 +67,7 @@ docs_ai/
   change_map.md                    # Change-family read/update/validation obligations
   behavior_specs.md                # Behavior contracts and invariants to preserve
   decision_records.md              # Ongoing architecture and workflow decisions
-  # Issue triage is handled by the /issue skill: .claude/skills/issue/SKILL.md
+  # Issue triage is handled by the /issue skill: harness/skills/issue/SKILL.md
   architecture/
     overview.md                    # System architecture, layers, entry points, plugin model
     module_dependency.md           # Module dependency matrix, impact analysis guide
@@ -92,7 +92,7 @@ docs/                              # Original project documentation (do not move
 
 1. **Code change -> Doc change**: Every code modification that changes behavior, API, or architecture MUST have a corresponding documentation update. Use the lookup table above to find which docs to update.
 2. **New file -> Index update**: When adding new source files, update `docs_ai/codebase_index.md` and `docs_ai/architecture/module_dependency.md`.
-3. **New test -> Validate skill update**: When adding new test patterns, see `tests/CLAUDE.md` and `.claude/skills/validate/SKILL.md`.
+3. **New test -> Validate skill update**: When adding new test patterns, see `tests/CLAUDE.md` and `harness/skills/validate/SKILL.md`.
 4. **Doc-first for API changes**: Public API changes should be documented before or alongside implementation.
 5. **Keep `docs/` and `docs_ai/` separate**: `docs/` contains original project documentation. `docs_ai/` contains agent workflow and analysis documents.
 6. **Knowledge-base upkeep**: Update `code_map`, `change_map`, `behavior_specs`, and `decision_records` whenever their maintenance contracts are triggered.

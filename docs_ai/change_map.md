@@ -57,7 +57,7 @@ Notes:
 - Public API changes require updates to `docs/API.md`, `docs_ai/architecture/overview.md`, `docs_ai/behavior_specs.md`, and validation with full unit plus integration tests unless blocked.
 - New source files require updates to `docs_ai/codebase_index.md`, `docs_ai/code_map.md`, `docs_ai/architecture/module_dependency.md`, and relevant behavior specs.
 - New feature gates require updates to `CMakeLists.txt`, `cmake/CMakeLists.txt` if applicable, `docs_ai/build/build_guide.md`, `docs_ai/behavior_specs.md`, and the code map.
-- New tests or integration cases should be reflected in `/validate` scope (see `.claude/skills/validate/SKILL.md`).
+- New tests or integration cases should be reflected in `/validate` scope (see `harness/skills/validate/SKILL.md`).
 - Behavior-changing bug fixes require either a regression test or a specific existing test that covers the fixed path.
 - Architectural tradeoffs, compatibility choices, or non-obvious constraints require a decision record.
 
@@ -333,7 +333,7 @@ Likely files:
 
 Read before editing:
 - `tests/CLAUDE.md`
-- `.claude/skills/validate/SKILL.md`
+- `harness/skills/validate/SKILL.md`
 
 Update after editing:
 - `docs_ai/codebase_index.md` for new harness files.

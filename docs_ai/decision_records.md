@@ -139,7 +139,7 @@ Context:
 - This created scattered knowledge: the AI had to read multiple docs, guess test scope, and construct commands manually.
 
 Decision:
-- Replace the doc-based validation approach with a two-layer `/validate` skill: deterministic shell script (`scripts/xqc_validate.sh`) for repeatable operations + AI skill (`.claude/skills/validate/SKILL.md`) for dynamic scope decisions.
+- Replace the doc-based validation approach with a two-layer `/validate` skill: deterministic shell script (`scripts/xqc_validate.sh`) for repeatable operations + AI skill (`harness/skills/validate/SKILL.md`) for dynamic scope decisions.
 - `docs_ai/validation_guide.md` becomes a stub pointing to `/validate`.
 - `docs_ai/testing/test_guide.md` retains test architecture, commands, and diagnostics only (feature-to-test mapping moved to the skill).
 - All pipelines, skills, and docs route validation through `/validate`.
@@ -154,7 +154,7 @@ Update triggers:
 
 Evidence:
 - `scripts/xqc_validate.sh`
-- `.claude/skills/validate/SKILL.md`
+- `harness/skills/validate/SKILL.md`
 - `docs_ai/validation_guide.md` (stub)
 
 ### ADR-0005: Preserve SSL backend isolation

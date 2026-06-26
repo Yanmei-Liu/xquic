@@ -305,19 +305,24 @@ docs_ai/
   codebase_index.md         # This annotated file tree and ownership index
 ```
 
-## .claude/ -- Agent Workflow Configuration
+## harness/ -- Agent Skills and Commands (Platform-Agnostic)
 
 ```
-.claude/
-  commands/
-    goal.md                  # Claude Code command wrapper for long-running goals
+harness/
   skills/
+    validate/                # Build + test validation skill
     gh-pr-review/            # Source-backed GitHub PR review workflow
     gh-fix-ci/               # GitHub CI log diagnosis and smallest-fix workflow
     gh-address-comments/     # PR review comment triage and narrow edit workflow
-    issue-to-branch/         # GitHub issue intake and scoped branch preparation
+    issue/                   # GitHub issue intake and scoped branch preparation
     xquic-safe-push/         # Branch, staging, commit, and remote push safety checks
+  commands/
+    goal.md                  # Background goal launcher
+  templates/
+    PROJECT_INSTRUCTIONS.md  # Project instruction template (installed as CLAUDE.md or AGENTS.md)
 ```
+
+Installed to platform-specific directories via `scripts/install_harness.sh <platform>`.
 
 ## cmake/ -- CMake Modules
 

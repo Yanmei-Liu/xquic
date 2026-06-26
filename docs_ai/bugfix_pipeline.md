@@ -73,7 +73,7 @@ Does an existing unit test cover the fixed code path?
 
 ### Where to Add Tests
 
-For unit tests, see `tests/CLAUDE.md`. For the file-to-module mapping and integration test case catalog, use `/validate --detect` or see `.claude/skills/validate/SKILL.md`.
+For unit tests, see `tests/CLAUDE.md`. For the file-to-module mapping and integration test case catalog, use `/validate --detect` or see `harness/skills/validate/SKILL.md`.
 
 ### Post-Modification Verification
 

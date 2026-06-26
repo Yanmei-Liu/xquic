@@ -296,4 +296,4 @@ Primary files:
 
 First files to inspect:
 - Test mapping and validation: `/validate` skill; diagnostics in `docs_ai/testing/test_guide.md`.
-- Adding tests: `tests/CLAUDE.md`; integration case catalog in `.claude/skills/validate/SKILL.md`.
+- Adding tests: `tests/CLAUDE.md`; integration case catalog in `harness/skills/validate/SKILL.md`.
