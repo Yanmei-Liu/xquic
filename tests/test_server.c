@@ -144,8 +144,10 @@ int g_send_body_size_defined;
 int g_save_body;
 int g_read_body;
 int g_spec_url;
-//99 pure fin
+/* 99 pure fin, 7XX for 0-RTT transport param validation */
 int g_test_case;
+int g_server_conn_cnt;
+xqc_conn_settings_t g_conn_settings;
 int g_ipv6;
 int g_batch=0;
 int g_lb_cid_encryption_on = 0;
@@ -971,6 +973,19 @@ xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, vo
 
     free(user_conn);
 
+    g_server_conn_cnt++;
+
+    /*
+     * test 701: after the first connection closes, reduce max_streams_bidi
+     * so the second connection (with 0-RTT) hits the RFC 9000 Section 7.4.1
+     * validation check on the client side.
+     */
+    if (g_test_case == 701 && g_server_conn_cnt == 1) {
+        g_conn_settings.max_streams_bidi = 1;
+        xqc_server_set_conn_settings(ctx.engine, &g_conn_settings);
+        printf("test_701: reduced max_streams_bidi to 1 for next conn\n");
+    }
+
     if (g_mpshell) {
         event_base_loopbreak(eb);
         printf("xqc_server_h3_conn_close_notify\n");
@@ -988,6 +1003,11 @@ xqc_server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *conn_user_da
     printf("0rtt_flag:%d\n", stats.early_data_flag);
     printf("h3_datagram_mss:%zd\n", xqc_h3_ext_datagram_get_mss(h3_conn));
 
+
+    if (g_test_case == 48) {
+        printf("[initial-salt-test] server handshake ok, conn_err:%d\n",
+               stats.conn_err);
+    }
 
     /* pretend to create a server-inited http3 stream */
     if (g_test_case == 17) {
@@ -2479,10 +2499,10 @@ int main(int argc, char *argv[]) {
         .pacing_on  =   pacing_on,
         .cong_ctrl_callback = cong_ctrl,
         .cc_params  =   {
-            .customize_on = 1, 
-            .init_cwnd = 32, 
+            .customize_on = 1,
+            .init_cwnd = 32,
             .cc_optimization_flags = cong_flags,
-            .copa_delta_ai_unit = g_copa_ai, 
+            .copa_delta_ai_unit = g_copa_ai,
             .copa_delta_base = g_copa_delta,
         },
         .enable_multipath = g_enable_multipath,
@@ -2546,6 +2566,13 @@ int main(int argc, char *argv[]) {
         fec_params.fec_code_rate = 0.2;
         fec_params.fec_max_symbol_num_per_block = 10;
         fec_params.fec_mp_mode = XQC_FEC_MP_USE_STB;
+
+        /* Case 700: see test_client.c for rationale (issue #534 bit 32 fix) */
+        if (g_test_case == 700) {
+            fec_params.fec_code_rate = 1.0;
+            fec_params.fec_max_symbol_num_per_block = 5;
+        }
+
         conn_settings.fec_params = fec_params;
     }
 
@@ -2585,6 +2612,10 @@ int main(int argc, char *argv[]) {
         conn_settings.receive_timestamps_exponent = 0;
     }
 
+    /* Set larger blocked buffer limits for QPACK to avoid triggering limits in tests */
+    conn_settings.max_blocked_buf_per_stream = 10 * 1024 * 1024;  /* 10 MB per stream */
+    conn_settings.max_blocked_buf_per_conn = 50 * 1024 * 1024;    /* 50 MB per connection */
+
     if (g_test_case == 451) {
         conn_settings.extended_ack_features = 0;
         conn_settings.max_receive_timestamps_per_ack = 40;
@@ -2602,6 +2633,15 @@ int main(int argc, char *argv[]) {
         conn_settings.extended_ack_features = 2;
         conn_settings.max_receive_timestamps_per_ack = 0;
         conn_settings.receive_timestamps_exponent = 0;
+    }
+
+    if (g_test_case == 454 || g_test_case == 455) {
+        conn_settings.simulate_ecn = 1;
+    }
+
+    /* test 702: server starts with reduced max_streams_bidi from the beginning */
+    if (g_test_case == 702) {
+        conn_settings.max_streams_bidi = 1;
     }
 
     xqc_config_t config;
@@ -2643,6 +2683,18 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
+    /*
+     * VN abort test (case 33): offer only draft-29 so that the V1
+     * client hits the abort path instead of the downgrade-protection
+     * discard.  Server's VN will list 0xFF00001D only; V1 is absent,
+     * so the client's current_wire_version check passes and the
+     * connection is correctly abandoned per RFC 9000 §6.2.
+     */
+    if (g_test_case == 33) {
+        config.support_version_count = 1;
+        config.support_version_list[0] = 0xFF00001D; /* draft-29 */
+    }
+
     /* test server cid negotiate */
     if (g_test_case == 1 || g_test_case == 5 || g_test_case == 6 || g_sid_len != 0) {
 
@@ -2666,6 +2718,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    g_conn_settings = conn_settings;
     xqc_server_set_conn_settings(ctx.engine, &conn_settings);
 
     /* register http3 callbacks */

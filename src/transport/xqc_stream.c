@@ -1087,6 +1087,15 @@ xqc_read_crypto_stream(xqc_stream_t *stream)
 
         if (stream->stream_data_in.next_read_offset >= stream_frame->data_offset + stream_frame->data_length) {
             xqc_list_del(pos);
+            /* decrement buffered resource counters */
+            if (stream->stream_data_in.buffered_frame_count > 0) {
+                stream->stream_data_in.buffered_frame_count--;
+            }
+            if (stream->stream_data_in.buffered_data_bytes >= stream_frame->data_length) {
+                stream->stream_data_in.buffered_data_bytes -= stream_frame->data_length;
+            } else {
+                stream->stream_data_in.buffered_data_bytes = 0;
+            }
             xqc_destroy_stream_frame(stream_frame);
             continue;
         }
@@ -1099,6 +1108,15 @@ xqc_read_crypto_stream(xqc_stream_t *stream)
         xqc_int_t ret = xqc_tls_process_crypto_data(conn->tls, stream->stream_encrypt_level, data_start, data_len);
 
         xqc_list_del(pos);
+        /* decrement buffered resource counters */
+        if (stream->stream_data_in.buffered_frame_count > 0) {
+            stream->stream_data_in.buffered_frame_count--;
+        }
+        if (stream->stream_data_in.buffered_data_bytes >= stream_frame->data_length) {
+            stream->stream_data_in.buffered_data_bytes -= stream_frame->data_length;
+        } else {
+            stream->stream_data_in.buffered_data_bytes = 0;
+        }
         xqc_destroy_stream_frame(stream_frame);
 
         if (ret != XQC_OK) {
@@ -1835,7 +1853,7 @@ xqc_process_crypto_write_streams(xqc_connection_t *conn)
             ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify crypto err:%d|", ret);
-                XQC_CONN_ERR(conn, TRA_CRYPTO_ERROR);
+                XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             }
         }
     }
@@ -1853,7 +1871,7 @@ xqc_process_crypto_read_streams(xqc_connection_t *conn)
             ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify crypto err:%d|", ret);
-                XQC_CONN_ERR(conn, TRA_CRYPTO_ERROR);
+                XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             }
         }
     }
